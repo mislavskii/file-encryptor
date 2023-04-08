@@ -15,6 +15,10 @@ public class Main {
 
         frame.setVisible(true);
 
+    }
+}
+
+
 //        String path = "D:\\WinDirs\\Desktop\\GlobicaDocs/";
 //        ZipParameters parameters = new ZipParameters();
 //
@@ -39,5 +43,3 @@ public class Main {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-    }
-}

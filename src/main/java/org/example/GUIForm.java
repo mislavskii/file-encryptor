@@ -90,6 +90,14 @@ public class GUIForm {
                     // Encrypt or decrypt accordingly;
                     setButtonsEnabled(false);
                     String password = JOptionPane.showInputDialog("Enter password:");
+                    if (password.isEmpty()) {
+                        JOptionPane.showMessageDialog(
+                                rootPanel,
+                                "Password is empty!",
+                                "Error",
+                                JOptionPane.WARNING_MESSAGE
+                                );
+                    }
                     if (encryptedFileSelected) {
                         decryptFile(password);
                     } else {
@@ -149,7 +157,15 @@ public class GUIForm {
             zipFile.setPassword(password);
             zipFile.extractAll(outPath);
         } catch (Exception e) {
-            e.printStackTrace();
+            if (e.getMessage() != null && e.getMessage().contains("Wrong Password")) {
+                JOptionPane.showMessageDialog(
+                        rootPanel,
+                        "Wrong password.",
+                        "Error",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                e.printStackTrace();
+            }
         }
     }
 
