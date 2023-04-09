@@ -46,14 +46,13 @@ public class DecryptorThread extends Thread{
                 Utils.wipeDir(outPath);
                 form.setButtonsEnabled(true);
                 return;
-            } else {
-                e.printStackTrace();
             }
+            e.printStackTrace();
         }
         onFinish();
     }
 
-    private void onStart () {
+    private void onStart() {
         form.setButtonsEnabled(false);
     }
     private void onFinish() {
