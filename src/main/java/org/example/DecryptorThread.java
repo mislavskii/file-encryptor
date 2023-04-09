@@ -35,14 +35,17 @@ public class DecryptorThread extends Thread{
     @Override
     public void run() {
         onStart();
+        String outPath = getOutPath();
         try {
-            String outPath = getOutPath();
             ZipFile zipFile = new ZipFile(file);
             zipFile.setPassword(password);
             zipFile.extractAll(outPath);
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().contains("Wrong Password")) {
                 form.showWarning("Wrong Password!");
+                Utils.wipeDir(outPath);
+                form.setButtonsEnabled(true);
+                return;
             } else {
                 e.printStackTrace();
             }
