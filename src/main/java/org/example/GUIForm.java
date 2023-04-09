@@ -1,8 +1,6 @@
 package org.example;
 
 import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.model.ZipParameters;
-import net.lingala.zip4j.util.Zip4jConstants;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -18,15 +16,8 @@ public class GUIForm {
     private boolean encryptedFileSelected;
     private final String decryptAction = "Decrypt";
     private final String encryptAction = "Encrypt";
-    private final ZipParameters parameters;
 
     public GUIForm() {
-        parameters = new ZipParameters();
-        parameters.setCompressionMethod(Zip4jConstants.COMP_DEFLATE);
-        parameters.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_ULTRA);
-        parameters.setEncryptFiles(true);
-        parameters.setEncryptionMethod(Zip4jConstants.ENC_METHOD_STANDARD);
-//        parameters.setPassword("sobaka");
 
         selectButton.addActionListener(
                 new Action() {
@@ -48,22 +39,7 @@ public class GUIForm {
                     chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                     chooser.showOpenDialog(rootPanel);
                     selectedFile = chooser.getSelectedFile();
-                    if (selectedFile == null) {
-                        filePath.setText("");
-                        actionButton.setVisible(false);
-                    } else {
-                        filePath.setText(selectedFile.getAbsolutePath());
-                        try {
-                            ZipFile zipFile = new ZipFile(selectedFile);
-                            encryptedFileSelected = zipFile.isValidZipFile() && zipFile.isEncrypted();
-                            actionButton.setText(
-                                    encryptedFileSelected ? decryptAction : encryptAction
-                            );
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                        actionButton.setVisible(true);
-                    }
+                    onFileSelect();
                 }
             }
         );
@@ -87,16 +63,12 @@ public class GUIForm {
                     if (selectedFile == null) {
                         return;
                     }
-                    // Encrypt or decrypt accordingly;
                     setButtonsEnabled(false);
                     String password = JOptionPane.showInputDialog("Enter password:");
-                    if (password.isEmpty()) {
-                        JOptionPane.showMessageDialog(
-                                rootPanel,
-                                "Password is empty!",
-                                "Error",
-                                JOptionPane.WARNING_MESSAGE
-                                );
+                    if (password == null || password.isEmpty()) {
+                        showWarning("Password is empty!");
+                        setButtonsEnabled(true);
+                        return;
                     }
                     if (encryptedFileSelected) {
                         decryptFile(password);
@@ -109,64 +81,60 @@ public class GUIForm {
         );
     }
 
-    private void setButtonsEnabled(boolean enabled) {
+    void setButtonsEnabled(boolean enabled) {
         selectButton.setEnabled(enabled);
         actionButton.setEnabled(enabled);
     }
 
-    private String getArchiveName() {
-        for (int i = 0; ; i++) {
-            String number = i > 0 ? Integer.toString(i) : "";
-            String archiveName = selectedFile.getAbsolutePath() + number + ".cry";
-            if (!new File(archiveName).exists()) {
-                return archiveName;
-            }
+    private void onFileSelect() {
+        if (selectedFile == null) {
+            filePath.setText("");
+            actionButton.setVisible(false);
+            return;
         }
+        filePath.setText(selectedFile.getAbsolutePath());
+        try {
+            ZipFile zipFile = new ZipFile(selectedFile);
+            encryptedFileSelected = zipFile.isValidZipFile() && zipFile.isEncrypted();
+            actionButton.setText(
+                encryptedFileSelected ? decryptAction : encryptAction
+            );
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        actionButton.setVisible(true);
     }
 
     private void encryptFile(String password) {
-        String archiveName = getArchiveName();
-        parameters.setPassword(password);
-        try {
-            ZipFile zipFile = new ZipFile(archiveName);
-            if (selectedFile.isDirectory()) {
-                zipFile.addFolder(selectedFile, parameters);
-            } else {
-                zipFile.addFile(selectedFile, parameters);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private String getOutPath() {
-        String path = selectedFile.getAbsolutePath().replace(".cry", "");
-        for (int i = 0; ; i++) {
-            String number = i > 0 ? Integer.toString(i) : "";
-            String outPath = path + number;
-            if (!new File(outPath).exists()) {
-                return outPath;
-            }
-        }
+        EncryptorThread thread = new EncryptorThread(this);
+        thread.setFile(selectedFile);
+        thread.setPassword(password);
+        thread.start();
     }
 
     private void decryptFile(String password) {
-        String outPath = getOutPath();
-        try {
-            ZipFile zipFile = new ZipFile(selectedFile);
-            zipFile.setPassword(password);
-            zipFile.extractAll(outPath);
-        } catch (Exception e) {
-            if (e.getMessage() != null && e.getMessage().contains("Wrong Password")) {
-                JOptionPane.showMessageDialog(
-                        rootPanel,
-                        "Wrong password.",
-                        "Error",
-                        JOptionPane.WARNING_MESSAGE);
-            } else {
-                e.printStackTrace();
-            }
-        }
+        DecryptorThread thread = new DecryptorThread(this);
+        thread.setFile(selectedFile);
+        thread.setPassword(password);
+        thread.start();
+    }
+
+    public void showWarning(String message) {
+        JOptionPane.showMessageDialog(
+            rootPanel,
+            message,
+            "Error",
+            JOptionPane.WARNING_MESSAGE
+        );
+    }
+
+    public void showFinished() {
+        JOptionPane.showMessageDialog(
+            rootPanel,
+            encryptedFileSelected ? "Decrypted" : "Encrypted",
+            "Success",
+            JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     public JPanel getRootPanel() {
